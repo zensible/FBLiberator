@@ -1,0 +1,48 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Getting Started Extension's Popup</title>
+    <style>
+      body {
+        min-width: 357px;
+        overflow-x: hidden;
+      }
+
+      img {
+        margin: 5px;
+        border: 2px solid black;
+        vertical-align: middle;
+        width: 75px;
+        height: 75px;
+      }
+    </style>
+
+    <!--
+      - JavaScript and HTML must be in separate files: see our Content Security
+      - Policy documentation[1] for details and explanation.
+      -
+      - [1]: http://developer.chrome.com/extensions/contentSecurityPolicy.html
+     -->
+    <script type="text/javascript" src="jquery-1.10.2.js"></script>
+    <script src="popup.js"></script>
+    <link type="text/css" rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <input id="save_timeline" type="button" value="Load All Posts + Comments"> <span id='spinner'><img src="/ajax-loader.gif"></span>
+    <div id='load_timeline_status'>
+      <p id='status1' class='status'>
+        1. Scrolling through history
+      </p>
+      <p id='status2' class='status'>
+        2. Retrieve all posts
+      </p>
+      <p id='status3' class='status'>
+        3. Retrieve all comments
+      </p>
+      <p id='status4' class='status'>
+        4. Done! Now click File -> Save As (Webpage, Complete) to save a complete backup of this timeline.
+      </p>
+    </div>
+  </body>
+</html>
+
