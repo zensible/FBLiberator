@@ -35,6 +35,7 @@ var fbExtend = {
 
   // Keeps scrolling down every 1-2s until we hit the 'Born' element
   scrollDown: function() {
+    fbExtendMsg.send({"action": "show_message", "str": "Scrolling back to the beginning of your timeline (step 1 of 4)"})
     fbExtendMsg.send({"action": "show_status", "num": "1"})
 
     this.debugOut("== scroll down");
@@ -79,6 +80,7 @@ var fbExtend = {
   more_posts_num: 0,
 
   clickMorePosts: function(num) {
+    fbExtendMsg.send({"action": "show_message", "str": "Clicking all of your posts (step 2 of 4)"})
     fbExtendMsg.send({"action": "show_status", "num": "2"})
 
     more_posts_links = jQuery('.uiMorePager a.pam.uiBoxWhite.noborder.uiMorePagerPrimary');
@@ -105,6 +107,7 @@ var fbExtend = {
    * 3. Click all 'show comment' links and all 'View X more comment' links
    */
   clickShowComments: function(num) {
+    fbExtendMsg.send({"action": "show_message", "str": "Clicking all 'show comment' links (step 3 of 4)"})
     fbExtendMsg.send({"action": "show_status", "num": "3"})
 
     this.debugOut("== Click show comments");
@@ -112,6 +115,7 @@ var fbExtend = {
   },
 
   saveHtml: function() {
+    fbExtendMsg.send({"action": "show_message", "str": "Saving html!"})
     fbExtendMsg.send({"action": "show_status", "num": "4"})
 
     this.debugOut("== Save HTML");
