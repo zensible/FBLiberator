@@ -1,10 +1,11 @@
 <!doctype html>
 <html>
   <head>
-    <title>Getting Started Extension's Popup</title>
+    <title>Fb Liberator</title>
     <style>
       body {
         min-width: 357px;
+        min-height: 300px;
         overflow-x: hidden;
       }
 
@@ -23,11 +24,14 @@
       -
       - [1]: http://developer.chrome.com/extensions/contentSecurityPolicy.html
      -->
-    <script type="text/javascript" src="jquery-1.10.2.js"></script>
+    <script type="text/javascript" src="lib/jquery-1.10.2.js"></script>
     <script src="popup.js"></script>
     <link type="text/css" rel="stylesheet" href="popup.css" />
   </head>
   <body>
+    <div id='message'>
+
+    </div>
     <input id="save_timeline" type="button" value="Load All Posts + Comments"> <span id='spinner'><img src="/ajax-loader.gif"></span>
     <div id='load_timeline_status'>
       <p id='status1' class='status'>

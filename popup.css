@@ -15,3 +15,9 @@
   width: 16px;
   height: 16px;
 }
+
+#message {
+  display: none;
+  background: #eeeeee;
+  font-size: 14px;
+}

@@ -138,12 +138,21 @@ jQuery( document ).ready(function() {
 });
 
 
+/*
+ * Cross-script request listeners: Content
+ */
 chrome.extension.onRequest.addListener(function(request, sender, sendResponse) {
+
+  // "Expand timeline" clicked. Load all posts and comments
   if (request.action == "expand_timeline") {
+    fbExtendMsg.send({"action": "show_message", "str": "Expanding the timeline!"})
     if (fbExtend.getPage() == 'timeline') {
       fbExtend.scrollDown();
+      sendResponse( { success: true } );
+    } else {
+      sendResponse( { success: false, error: "Err!" } );
     }
 
-    sendResponse( { success: true } );
   }
+
 });

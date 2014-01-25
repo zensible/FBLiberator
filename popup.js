@@ -1,6 +1,6 @@
 
 $( document ).ready(function() {
-  console.log("== Popup Loaded!");
+
 
   $('#save_timeline').click(function() {
     console.log("== clicked");
@@ -14,10 +14,25 @@ $( document ).ready(function() {
       chrome.tabs.sendRequest(tab.id, { action: 'expand_timeline' }, function(response) {
         console.log('Success?');
         console.log(response);
+        if (response["success"]) {
+          core.show_message(response.error);
+        } else {
+          core.show_message("Worked!");
+        }
       });
     });
   });
 });
+
+core = {};
+core.page_mode = function() {
+
+};
+
+core.show_message = function(str) {
+  $('#message').show();
+  $('#message').html(str)
+}
 
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
   console.log(sender.tab ?
@@ -51,6 +66,12 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 
     sendResponse( { success: true } );
   }
+
+  if (request.action == "show_message") {
+    core.show_message(request.str);
+    sendResponse( { success: true } );
+  }
+
 
 });
 
