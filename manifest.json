@@ -15,22 +15,25 @@
   },
 
   "permissions": [
-    "https://secure.flickr.com/",
+    "tabs",
     "pageCapture"
   ],
 
   "content_scripts": [
     {
       "matches": ["https://www.facebook.com/*"],
-      "css": ["fb_style.css"],
-      "js": ["lib/jquery-1.10.2.js", "content.js"]
+      "css": ["css/content.css"],
+      "js": ["lib/jquery-1.10.2.js", "lib/bootstrap.min.js", "content.js"]
     }
   ],
 
   "web_accessible_resources": [
     "lib/jquery-1.10.2.js",
     "lib/jquery-1.10.2.min.map",
-    "lib/FileSaver.js"
+    "lib/FileSaver.js",
+    "css/content.css",
+    "css/bootstrap-theme.min.css",
+    "css/bootstrap.min.css"
   ],
 
   "background": {

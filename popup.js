@@ -1,35 +1,125 @@
 
 $( document ).ready(function() {
 
+  fb_liberator.display_popup();
 
   $('#save_timeline').click(function() {
-    console.log("== clicked");
-
-    $('#spinner').show();
-
-    // Send 'get timeline' event to active tab
-    chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-      var tab = tabs[0];
-      console.log(tab.id);
-      chrome.tabs.sendRequest(tab.id, { action: 'expand_timeline' }, function(response) {
-        console.log('Success?');
-        console.log(response);
-        if (response["success"]) {
-          core.show_message(response.error);
-        } else {
-          core.show_message("Worked!");
-        }
-      });
-    });
+    fb_liberator.save_timeline();
   });
+
+  $('.btn-url').click(function() {
+    var url = $(this).data('url');
+    fb_liberator.go_url(url);
+  });
+
 });
 
-core = {};
-core.page_mode = function() {
+/* 
+ * Popover's state
+ */
+fb_liberator = {};
+fb_liberator.cur_tab = null;
+fb_liberator.uid = null;
+fb_liberator.url = null;
+fb_liberator.page = null;
+
+fb_liberator.display_popup = function() {
+
+  // Step 1: set cur_tab and url
+  chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+    var tab = tabs[0];
+    fb_liberator.cur_tab = tab;
+    fb_liberator.url = tab.url;
+  });
+
+  // Step 2: populate page, uid
+  fb_liberator.set_page(function(page) {
+    if (page == 'timeline') {
+      fb_liberator.set_uid();
+    }
+    if (page == 'home') {
+
+    }
+  });
+}
+
+fb_liberator.set_page = function(callback) {
+  shared.send_message("current_tab", { action: 'get_page' }, function(response) {
+    fb_liberator.page = response["page"];
+
+    // Sets page's body's class to either 'home' or 'timeline'
+    $('body').attr("class", fb_liberator.page);
+
+    var pageUC = fb_liberator.page.replace(/^(.)|\s(.)/g, function($1){ return $1.toUpperCase( ); });
+    chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+      $('#page').text(pageUC + ": " + tabs[0].title);
+    });
+
+    callback(fb_liberator.page);
+  });
+}
+
+fb_liberator.set_uid = function() {
+  shared.send_message("current_tab", { action: 'get_uid' }, function(response) {
+    if (response["success"]) {
+      var uid = response["uid"];
+      fb_liberator.uid = uid;
+    } else {
+      //fb_liberator.show_message("uid unavil");
+    }
+  });
+}
+
+fb_liberator.go_url = function(url) {
+  url = url.replace(/\[id\]/, fb_liberator.uid);
+
+  shared.send_message("current_tab", { action: 'go_url', url: url }, function(response) {
+    if (response["success"]) {
+      //fb_liberator.show_message("go url success");
+    } else {
+      //fb_liberator.show_message("go url fail");
+    }
+  });
+}
+
+fb_liberator.save_timeline = function() {
+  console.log("== clicked");
+
+  $('#spinner').show();
+  //sessionStorage.setItem("username", "John");
+  console.log("== clicked2");
+
+  // Send 'get timeline' event to active tab
+  chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+    console.log("== clicked3");
+    chrome.tabs.sendRequest(tabs[0].id, { action: 'expand_timeline' }, function(response) {
+      console.log("== clicked4");
+      console.log(response);
+      if (response == undefined) {
+        console.log("== Error: restart chrome");
+        // If this happens, somehow the events system broke down. Restart chrome and it will be fine
+      }
+      console.log(response);
+      if (response.success) {
+        fb_liberator.show_message("Worked!");
+      } else {
+        fb_liberator.show_message(response.error);
+      }
+    });
+
+  });
+}
+
+
+fb_liberator.select_page = function(page) {
 
 };
 
-core.show_message = function(str) {
+fb_liberator.page_mode = function() {
+
+};
+
+fb_liberator.show_message = function(str) {
   $('#message').show();
   $('#message').html(str)
 }
@@ -68,7 +158,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
   }
 
   if (request.action == "show_message") {
-    core.show_message(request.str);
+    fb_liberator.show_message(request.str);
     sendResponse( { success: true } );
   }
 

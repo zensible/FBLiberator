@@ -1,6 +1,10 @@
 var port = chrome.runtime.connect();
 
-
+/*
+ * Content.js: javascript which is injected into Facebook's DOM, extending its capabilities
+ * 
+ * Any interaction with facebook must happen here.
+ */
 var fbExtend = {
   debug_mode: true,
   timeout_scroll: null,
@@ -146,6 +150,9 @@ jQuery( document ).ready(function() {
  * Cross-script request listeners: Content
  */
 chrome.extension.onRequest.addListener(function(request, sender, sendResponse) {
+  console.log("== CONTENT request received: " + request.action);
+  console.log(request);
+  console.log(sender);
 
   // "Expand timeline" clicked. Load all posts and comments
   if (request.action == "expand_timeline") {
@@ -156,7 +163,32 @@ chrome.extension.onRequest.addListener(function(request, sender, sendResponse) {
     } else {
       sendResponse( { success: false, error: "Err!" } );
     }
+  }
 
+  if (request.action == "get_page") {
+    sendResponse( { success: true, page: fbExtend.getPage() } );
+  }
+
+  /*
+   * get_uid: by examining the current user's cover name, get his/her FB username
+   */
+  if (request.action == "get_uid") {
+    var cover_name = jQuery('#fbProfileCover .cover h2 a');
+    if (cover_name.length > 0) {
+      // Find username linked to timeline within profile cover area of screen
+      var uid = jQuery(cover_name[0]).attr('href');
+      var arr = uid.split('facebook.com/');
+      uid = arr[arr.length - 1];
+      sendResponse( { success: true, uid: uid } );
+    } else {
+      sendResponse( { success: false, uid: "" } );
+    }
+  }
+
+  if (request.action == 'go_url') {
+    var url = request.url;
+    window.location = url;
+    sendResponse( { success: true } );
   }
 
 });
