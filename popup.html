@@ -24,18 +24,33 @@
   <body class='default'>
     <!-- Menu for facebook homepage -->
 
-    <!-- Menu for facebook homepage -->
     <div class='show-default'>
-      To use this extension, go to <a id="go_url('facebook')">Facebook</a>. It works on the wall, timeline, gallery and messages pages.
+      To use this extension, please:<br>
+      <br>
+      <button type="button" class="btn btn-primary btn-url" data-url="https://www.facebook.com" data-newtab="true">Log into Facebook</button>
     </div>
 
+    <div class='show-default'>
+      <br>
+      Waiting for a Facebook page to finish loading...<img src="/img/ajax-loader.gif">
+    </div>
+    <!-- Menu for facebook homepage -->
+
+
+    <div class='row-fluid'>
+      <div id='page' class='span3'>
+      </div>
+      <div class='span3' style="text-align: right;">
+        <span id='spinner'><img src="/img/ajax-loader.gif"></span>
+      </div>
+    </div>
 
     <div class='show-home'>
       <button type="button" class="btn btn-primary btn-url" data-url="https://www.facebook.com">FB Home</button>
-      <button type="button" class="btn btn-link btn-url" data-url="https://www.facebook.com/timeline">Timeline</button>
-      <button type="button" class="btn btn-link btn-url" data-url="https://www.facebook.com/about">About</button>
-      <button type="button" class="btn btn-link btn-url" data-url="https://www.facebook.com/photos">Photos</button>
-      <button type="button" class="btn btn-link btn-url" data-url="https://www.facebook.com/friends">Friends</button>
+      <button type="button" class="btn btn-link btn-url" data-url="https://www.facebook.com/[id]/timeline">Timeline</button>
+      <button type="button" class="btn btn-link btn-url" data-url="https://www.facebook.com/[id]/about">About</button>
+      <button type="button" class="btn btn-link btn-url" data-url="https://www.facebook.com/[id]/photos">Photos</button>
+      <button type="button" class="btn btn-link btn-url" data-url="https://www.facebook.com/[id]/friends">Friends</button>
       <button type="button" class="btn btn-link btn-url" data-url="https://www.facebook.com/messages">Messages</button>
     </div>
 
@@ -49,14 +64,6 @@
 
     <div id='message' class='span12 text-warning' >
 
-    </div>
-
-    <div class='row-fluid'>
-      <div id='page' class='span3'>
-      </div>
-      <div class='span3' style="text-align: right;">
-        <span id='spinner'><img src="/img/ajax-loader.gif"></span>
-      </div>
     </div>
 
 

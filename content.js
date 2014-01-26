@@ -26,6 +26,9 @@ var fbExtend = {
     if (body.hasClass('home')) {
       page = 'home';
     }
+    //
+    // ToDo: photos, about, friends, messages
+    //
     if (body.hasClass('timelineLayout')) {
       page = 'timeline';
     }
@@ -126,9 +129,11 @@ var fbExtend = {
     fbExtendMsg.send({"action": "saveHTML"})
   },
 
+  /*
   consoleLog: function(str) {
     fbExtendMsg.send({"action": "consoleLog", "str": str})
   }
+  */
 }
 
 var fbExtendMsg = {
@@ -165,23 +170,33 @@ chrome.extension.onRequest.addListener(function(request, sender, sendResponse) {
     }
   }
 
-  if (request.action == "get_page") {
-    sendResponse( { success: true, page: fbExtend.getPage() } );
-  }
+  //if (request.action == "get_page") {
+  //  sendResponse( { success: true, page: fbExtend.getPage() } );
+  //}
 
   /*
    * get_uid: by examining the current user's cover name, get his/her FB username
    */
   if (request.action == "get_uid") {
-    var cover_name = jQuery('#fbProfileCover .cover h2 a');
+
+    var selector_timeline = '#fbProfileCover .cover h2 a';
+    var selector_home = '#pagelet_welcome_box a.fbxWelcomeBoxName';
+
+    var cover_name = jQuery(selector_timeline);
     if (cover_name.length > 0) {
       // Find username linked to timeline within profile cover area of screen
       var uid = jQuery(cover_name[0]).attr('href');
       var arr = uid.split('facebook.com/');
       uid = arr[arr.length - 1];
-      sendResponse( { success: true, uid: uid } );
-    } else {
-      sendResponse( { success: false, uid: "" } );
+      sendResponse( { success: true, uid: uid, page: "timeline" } );
+    }
+
+    cover_name = jQuery(selector_home);
+    if (cover_name.length > 0) {
+      var uid = jQuery(cover_name[0]).attr('href');
+      var arr = uid.split('facebook.com/');
+      uid = arr[arr.length - 1];
+      sendResponse( { success: true, uid: uid, page: "home" } );
     }
   }
 
@@ -192,3 +207,4 @@ chrome.extension.onRequest.addListener(function(request, sender, sendResponse) {
   }
 
 });
+
