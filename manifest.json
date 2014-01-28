@@ -23,7 +23,7 @@
     {
       "matches": ["https://www.facebook.com/*"],
       "css": ["css/content.css"],
-      "js": ["lib/jquery-1.10.2.js", "lib/bootstrap.min.js", "content.js"]
+      "js": ["lib/jquery-1.10.2.js", "lib/bootstrap.min.js", "shared.js", "content.js"]
     }
   ],
 
@@ -31,13 +31,14 @@
     "lib/jquery-1.10.2.js",
     "lib/jquery-1.10.2.min.map",
     "lib/FileSaver.js",
+    "shared.js",
     "css/content.css",
     "css/bootstrap-theme.min.css",
     "css/bootstrap.min.css"
   ],
 
   "background": {
-    "scripts": ["lib/FileSaver.js", "background.js"]
+    "scripts": ["lib/FileSaver.js", "lib/require.js", "lib/require.async.js", "modules/mimelib/index.js", "shared.js", "background.js"]
   },
 
   "content_security_policy": "script-src 'self' 'unsafe-eval'; object-src 'self'"

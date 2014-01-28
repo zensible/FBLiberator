@@ -12,7 +12,9 @@ shared.send_message = function(type, obj, callback) {
     chrome.runtime.sendMessage(obj, function(response) {
       console.log("+++ response: ");
       console.log(response);
-      callback(response);
+      if (callback) {
+        callback(response);
+      }
     });
   }
 
@@ -24,6 +26,9 @@ shared.send_message = function(type, obj, callback) {
         console.log("+++ response: ");
         console.log(response);
         callback(response);
+        if (callback) {
+          callback(response);
+        }
       });
     });
   }

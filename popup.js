@@ -164,6 +164,26 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     sendResponse( { success: true } );
   }
 
+  if (request.action == "setup_progressbar") {
+    jQuery('#progress-bar-current').attr('aria-valuemax', request.max);
+    jQuery('#progress-bar-current').attr('aria-valuenow', request.current);
+    jQuery('#progress-bar-current').css('width', request.width);
+  }
+
+  if (request.action == "update_progressbar") {
+    console.log(request);
+    jQuery('#progress-bar-current').attr('aria-valuenow', request.current);
+    jQuery('#progress-bar-current').css('width', request.width);
+
+    // After displaying the full toolbar, immediately move it back down to 0% 
+    if (request.width == "100%") {
+      window.setTimeout(function() {
+        jQuery('#progress-bar-current').css('width', "0%");
+      }, 1);
+    }
+  }
+
+
   /*
   if (request.action == "consoleLog") {
     console.log("==" + request.str);

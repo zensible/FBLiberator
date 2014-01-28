@@ -42,8 +42,8 @@ var fbExtend = {
 
   // Keeps scrolling down every 1-2s until we hit the 'Born' element
   scrollDown: function() {
-    fbExtendMsg.send({"action": "show_message", "str": "Scrolling back to the beginning of your timeline (step 1 of 4)"})
-    fbExtendMsg.send({"action": "show_status", "num": "1"})
+    shared.send_message("runtime", {"action": "show_message", "str": "Scrolling back to the beginning of your timeline (step 1 of 4)"})
+    shared.send_message("runtime", {"action": "show_status", "num": "1"})
 
     this.debugOut("== scroll down");
 
@@ -54,6 +54,7 @@ var fbExtend = {
   scrollUnlessDone: function() {
     if (this.bornVisible()) {
       this.debugOut("== born visible: done");
+
       this.clickMorePosts(-1);
     } else {
       this.debugOut("== pause then scroll");
@@ -80,26 +81,47 @@ var fbExtend = {
   },
 
   /*
-   * 2. Click all 'More posts from Date to Date' links, e.g. show 'non-highlight' posts
+   * 2. Click all 'More posts from Date to Date' links, one at a time. E.g., show 'non-highlight' posts
    * 
-   * These links (in the format of 'More posts from August 18 to September 11') disappear when clicked. Thus we can keep checking the total number to get a reliable indicator of whether one is still being loaded.
+   * These links (in the format of 'More posts from August 18 to September 11') disappear when clicked.
+   * Thus we can keep checking the total number to get a reliable indicator of whether one is still being loaded.
    */
-  more_posts_num: 0,
-
+  more_posts_max: 0,
   clickMorePosts: function(num) {
-    fbExtendMsg.send({"action": "show_message", "str": "Clicking all of your posts (step 2 of 4)"})
-    fbExtendMsg.send({"action": "show_status", "num": "2"})
+    shared.send_message("runtime", {"action": "show_message", "str": "Retrieving all posts (step 2 of 4)"})
+    shared.send_message("runtime", {"action": "show_status", "num": "2"})
 
-    more_posts_links = jQuery('.uiMorePager a.pam.uiBoxWhite.noborder.uiMorePagerPrimary');
+    var selector_more_posts = '.uiMorePager a.pam.uiBoxWhite.noborder.uiMorePagerPrimary';
+
+    more_posts_links = jQuery(selector_more_posts);
     if (num == -1) {
       num = more_posts_links.length
+
+      obj = {
+        "action": "setup_progressbar",
+        "max": num,
+        "current": 0,
+        "width": "0%"
+      }
+      more_posts_max = num;
+      shared.send_message("runtime", obj, function() { });
+    } else {
+      cur = more_posts_max - num;
+      wid = (Math.ceil(100 * (cur / more_posts_max))).toString() + "%";
+
+      obj = {
+        "action": "update_progressbar",
+        "current": cur,
+        "width": wid
+      }
+      shared.send_message("runtime", obj, function() { });
     }
 
     this.debugOut("== Click more posts: " + num + "," + more_posts_links.length);
 
-    if (jQuery('.uiMorePager a.pam.uiBoxWhite.noborder.uiMorePagerPrimary').length == 0) {
+    if (jQuery(selector_more_posts).length == 0) {
       this.debugOut("== no more posts to click");
-      this.clickShowComments(-1);
+      this.clickShowComments1(-1);
     } else {
       if (parseInt(num) == parseInt(more_posts_links.length)) {
         more_posts_links[0].click();
@@ -111,37 +133,76 @@ var fbExtend = {
   },
 
   /*
-   * 3. Click all 'show comment' links and all 'View X more comment' links
+   * 3. Click all 'View X More Comments'
    */
-  clickShowComments: function(num) {
-    fbExtendMsg.send({"action": "show_message", "str": "Clicking all 'show comment' links (step 3 of 4)"})
-    fbExtendMsg.send({"action": "show_status", "num": "3"})
+  view_comments_max: 0,
+  clickShowComments1: function(num) {
+    shared.send_message("runtime", {"action": "show_message", "str": "Retrieving all comment threads (step 3 of 4)"})
+    shared.send_message("runtime", {"action": "show_status", "num": "3"})
 
     this.debugOut("== Click show comments");
-    this.saveHtml();
+    // If page == 'home':
+    comment_selector = "a.UFIPagerLink";
+
+    view_more_comments_links = jQuery(comment_selector);
+    if (num == -1) {
+      num = view_more_comments_links.length
+
+      obj = {
+        "action": "setup_progressbar",
+        "max": num,
+        "current": 0,
+        "width": "0%"
+      }
+      view_comments_max = num;
+      shared.send_message("runtime", obj, function() { });
+    } else {
+      cur = view_comments_max - num;
+      wid = (Math.ceil(100 * (cur / view_comments_max))).toString() + "%";
+
+      obj = {
+        "action": "update_progressbar",
+        "current": cur,
+        "width": wid
+      }
+      shared.send_message("runtime", obj, function() { });
+    }
+
+    if (jQuery(view_more_comments_links).length == 0) {
+      this.debugOut("== no more posts to click");
+
+      // This clicks all the 'show retrieved comments' links, actually displaying the downloaded contents
+      show_comments_selector = 'i.UFIBlingBoxTimelineCommentIcon';
+      show_comments_links = jQuery(show_comments_selector);
+      for (var x = 0; x < show_comments_links.length; x++) {
+        var link = show_comments_links[x];
+        console.log("Showing comment: " + x);
+        link.click();
+      }
+      this.saveHtml();
+    } else {
+      if (parseInt(num) == parseInt(view_more_comments_links.length)) {
+        view_more_comments_links[0].click();
+        this.timeout_scroll = window.setTimeout(function() { fbExtend.clickShowComments1(num - 1) }, this.randInterval(500, 1500));
+      } else {
+        this.timeout_scroll = window.setTimeout(function() { fbExtend.clickShowComments1(num) }, this.randInterval(500, 1500));
+      }
+    }
   },
 
   saveHtml: function() {
-    fbExtendMsg.send({"action": "show_message", "str": "Saving html!"})
-    fbExtendMsg.send({"action": "show_status", "num": "4"})
+    shared.send_message("runtime", {"action": "show_message", "str": "Saving html!"})
+    shared.send_message("runtime", {"action": "show_status", "num": "4"})
 
     this.debugOut("== Save HTML");
-    fbExtendMsg.send({"action": "saveHTML"})
+    shared.send_message("runtime", {"action": "saveHTML"})
   },
 
   /*
   consoleLog: function(str) {
-    fbExtendMsg.send({"action": "consoleLog", "str": str})
+    shared.send_message("runtime", {"action": "consoleLog", "str": str})
   }
   */
-}
-
-var fbExtendMsg = {
-  send: function(obj) {
-    chrome.runtime.sendMessage(obj, function(response) {
-      console.log(response);
-    });
-  }
 }
 
 jQuery.noConflict();
@@ -161,7 +222,7 @@ chrome.extension.onRequest.addListener(function(request, sender, sendResponse) {
 
   // "Expand timeline" clicked. Load all posts and comments
   if (request.action == "expand_timeline") {
-    fbExtendMsg.send({"action": "show_message", "str": "Expanding the timeline!"})
+    shared.send_message("runtime", {"action": "show_message", "str": "Expanding the timeline!"})
     if (fbExtend.getPage() == 'timeline') {
       fbExtend.scrollDown();
       sendResponse( { success: true } );
