@@ -3,20 +3,14 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
   // ToDo: Make this save html/images/css
 
   if (request.action == "saveHTML") {
+    console.log("save");
+    shared.send_message("current_tab", { action: 'process_page_to_html' }, function(response) {
+      filename = "test.html";
+      console.log(response.html);
 
-    shared.send_message("current_tab", { action: 'get_uid' }, function(response) {
-      if (response["success"]) {
-        var uid = response["uid"];
-        var page = response["page"];
+      var blob = new Blob([response.html], {type: "text/plain;charset=utf-8"});
+      saveAs(blob, filename);
+    });
 
-        chrome.tabs.query({active: true}, function(tabs) {
-          chrome.pageCapture.saveAsMHTML({ "tabId": tabs[0].id }, function(mhtmlData) {
-              filename = 'fwee.mhtml';
-              saveAs(mhtmlData, filename);
-              sendResponse( { success: true } );
-          });
-        });
-      }
-    })
   }
 });

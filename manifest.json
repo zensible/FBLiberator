@@ -16,7 +16,10 @@
 
   "permissions": [
     "tabs",
-    "pageCapture"
+    "pageCapture",
+    "downloads",
+    "http://*/",
+    "https://*/"
   ],
 
   "content_scripts": [

@@ -261,6 +261,175 @@ chrome.extension.onRequest.addListener(function(request, sender, sendResponse) {
     }
   }
 
+  var cache = {};
+  var XHR_TIMEOUT = 45000;
+  var num_responses_required = 0;
+
+  function processDoc() {
+
+    // 1. Handle all <script> tags, insert from remote
+    var scripts = jQuery("script");
+    num_responses_required = scripts.length;
+    for (var x = 0; x < scripts.length; x++) {
+      var script = jQuery(scripts[x]);
+      var url = script.attr("src");
+      if (!url) {
+        url = script.attr("href");
+      }
+      console.log("url", url);
+      processDomItem(url, false, script, callbackScript)
+    }
+
+    // 2. Handle all <link> tags, insert from remote
+    var styles = jQuery("link");
+    num_responses_required += styles.length;
+    for (var x = 0; x < styles.length; x++) {
+      var style = jQuery(styles[x]);
+      var url = style.attr("src");
+      if (!url) {
+        url = style.attr("href");
+      }
+      console.log("url", url);
+      processDomItem(url, false, style, callbackStyle)
+    }
+
+    // 2. Handle all <img> tags, insert from remote
+    var images = jQuery("img");
+    num_responses_required += images.length;
+    for (var x = 0; x < images.length; x++) {
+      var img = jQuery(images[x]);
+      var url = img.attr("src");
+
+      processDomItem(url, true, img, callbackImage)
+    }
+  }
+
+  function processDomItem(url, is_binary, orig_item, callback) {
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', url, true);
+
+    if (cache[url]) {
+      xhr_complete();
+      return cache[url];
+    }
+
+    if (is_binary) {
+      xhr.responseType = 'arraybuffer';
+      xhr.onload = function(e) {
+        xhr_complete();
+        if (this.status == 200) {
+          var uInt8Array = new Uint8Array(this.response);
+          var i = uInt8Array.length;
+          var binaryString = new Array(i);
+          while (i--)
+          {
+            binaryString[i] = String.fromCharCode(uInt8Array[i]);
+          }
+          var data = binaryString.join('');
+
+          var base64 = window.btoa(data);
+          var response = "data:image/png;base64," + base64;
+          cache[url] = response;
+          orig_item.attr("src", response);
+        }
+      };
+    } else {
+      xhr.onload = function(e) {
+        xhr_complete();
+        console.log("onload", e);
+        if (this.status == 200) {
+          var response = this.responseText;
+          cache[url] = response;
+          callback(url, orig_item, response);
+        }
+      }
+    }
+    xhr.onerror = function() {
+      xhr_complete();
+    };
+    timeout = setTimeout(function() {
+      // Has the XHR request has begun but not finished after 45s? Kill it and mark it complete
+      if (xhr.readyState != 4) {
+        xhr_complete();
+      }
+
+      xhr.abort();
+    }, XHR_TIMEOUT);
+
+    try {
+      xhr.send(null);
+    } catch (e) {
+      xhr_complete();
+    }
+  }
+
+  function callbackStyle(url, style, response) {
+    console.log("RESPONSE LINK", response.slice(0, 100));
+    var obj = jQuery("<style/>", { text: response });
+    jQuery(style).replaceWith(obj);
+
+  }
+
+  function callbackScript(url, script, response) {
+    console.log("RESPONSE SCRIPT", response.slice(0, 100));
+    var obj = jQuery("<script/>", { text: response });
+    jQuery(script).replaceWith(obj);
+  }
+
+  function callbackImage(img) {
+
+  }
+
+  /*
+   * Xhr finished, error'd out or timed out. Mark it complete. If all xhrs are complete, send a response to the caller
+   */
+  function xhr_complete() {
+    console.log("XHR COMPLETE", num_responses_required);
+    num_responses_required -= 1;
+    if (num_responses_required == 0) {
+      html = jQuery('html').html();
+      //console.log("HTML", html);
+
+      sendResponse( { success: true, html: html } );
+    }
+  }
+
+  // Cross-browser way to get a compatible XMLHttpRequest object, or raise an error trying
+  function createCORSRequest(method, url) {
+    var xhr = new XMLHttpRequest();
+    if ("withCredentials" in xhr) {
+
+      // Check if the XMLHttpRequest object has a "withCredentials" property.
+      // "withCredentials" only exists on XMLHTTPRequest2 objects.
+      xhr.open(method, url, true);
+
+    } else if (typeof XDomainRequest != "undefined") {
+
+      // Otherwise, check if XDomainRequest.
+      // XDomainRequest only exists in IE, and is IE's way of making CORS requests.
+      xhr = new XDomainRequest();
+      xhr.open(method, url);
+
+    } else {
+
+      // Otherwise, CORS is not supported by the browser.
+      xhr = null;
+
+    }
+    return xhr;
+  }
+
+  if (request.action == "process_page_to_html") {
+    var html = '';
+
+    processDoc();
+
+    //html = jQuery('html').html();
+    //console.log("HTML", html);
+
+    //sendResponse( { success: true, html: html } );
+  }
+
   if (request.action == 'go_url') {
     var url = request.url;
     window.location = url;
@@ -269,3 +438,31 @@ chrome.extension.onRequest.addListener(function(request, sender, sendResponse) {
 
 });
 
+
+function replaceURLs(content, host, requestManager, callback) {
+  var i, url, result, values = removeComments(content).match(URL_EXP), requestMax = 0, requestIndex = 0;
+
+  function sendRequest(origUrl) {
+    requestMax++;
+    requestManager.send(url, function(data) {
+      requestIndex++;
+      if (content.indexOf(origUrl) != -1) {
+        data.mediaType = data.mediaType ? data.mediaType.split(";")[0] : null;
+        content = content.replace(new RegExp(origUrl.replace(/([{}\(\)\^$&.\*\?\/\+\|\[\\\\]|\]|\-)/g, "\\$1"), "gi"), getDataURI(data,
+            EMPTY_PIXEL_DATA, true));
+      }
+      if (requestIndex == requestMax)
+        callback(content);
+    }, null, "base64");
+  }
+
+  if (values)
+    for (i = 0; i < values.length; i++) {
+      result = values[i].match(URL_VALUE_EXP);
+      if (result && result[1]) {
+        url = formatURL(result[1], host);
+        if (url.indexOf("data:") != 0)
+          sendRequest(result[1]);
+      }
+    }
+}
