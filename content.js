@@ -42,7 +42,7 @@ var fbExtend = {
 
   // Keeps scrolling down every 1-2s until we hit the 'Born' element
   scrollDown: function() {
-    shared.send_message("runtime", {"action": "show_message", "str": "Scrolling back to the beginning of your timeline (step 1 of 4)"})
+    shared.send_message("runtime", {"action": "show_message", "str": "Scrolling back to the beginning of your timeline (step 1 of 5)"})
     shared.send_message("runtime", {"action": "show_status", "num": "1"})
 
     this.debugOut("== scroll down");
@@ -55,7 +55,7 @@ var fbExtend = {
     if (this.bornVisible()) {
       this.debugOut("== born visible: done");
 
-      this.clickMorePosts(-1);
+      this.clickMorePosts();
     } else {
       this.debugOut("== pause then scroll");
       this.timeout_scroll = window.setTimeout(function() { fbExtend.scrollDown() }, this.randInterval(500, 1000));
@@ -87,117 +87,369 @@ var fbExtend = {
    * Thus we can keep checking the total number to get a reliable indicator of whether one is still being loaded.
    */
   more_posts_max: 0,
-  clickMorePosts: function(num) {
-    shared.send_message("runtime", {"action": "show_message", "str": "Retrieving all posts (step 2 of 4)"})
+  more_posts_links: [],
+  more_posts_timers: [],
+  clickMorePosts: function() {
+
+    shared.send_message("runtime", {"action": "show_message", "str": "Retrieving all posts (step 2 of 5). This may take several minutes."})
     shared.send_message("runtime", {"action": "show_status", "num": "2"})
 
     var selector_more_posts = '.uiMorePager a.pam.uiBoxWhite.noborder.uiMorePagerPrimary';
 
-    more_posts_links = jQuery(selector_more_posts);
-    if (num == -1) {
-      num = more_posts_links.length
-
-      obj = {
-        "action": "setup_progressbar",
-        "max": num,
-        "current": 0,
-        "width": "0%"
-      }
-      more_posts_max = num;
-      shared.send_message("runtime", obj, function() { });
-    } else {
-      cur = more_posts_max - num;
-      wid = (Math.ceil(100 * (cur / more_posts_max))).toString() + "%";
-
-      obj = {
-        "action": "update_progressbar",
-        "current": cur,
-        "width": wid
-      }
-      shared.send_message("runtime", obj, function() { });
+    this.more_posts_links = jQuery(selector_more_posts);
+    this.more_posts_max = this.more_posts_links.length;
+    obj = {
+      "action": "setup_progressbar",
+      "max": this.more_posts_max,
+      "current": 0,
+      "width": "0%"
     }
+    shared.send_message("runtime", obj, function() { });
 
-    this.debugOut("== Click more posts: " + num + "," + more_posts_links.length);
+    multiplier = 750; // 750ms wait between calls to 'get more posts'
+    wait_between_steps = 4000; // Gives the various 'get more posts' calls time to finish before we start copying comments
+    if (this.more_posts_links.length == 0) {
+      fbExtend.clickShowComments1();
+    }
+    for (var x = 0; x < this.more_posts_links.length; x++) {
+      var more_posts_link = this.more_posts_links[x];
+      this.more_posts_timers[x] = setTimeout(function(x, more_posts_max, more_posts_link) {
+        more_posts_link.click();
 
-    if (jQuery(selector_more_posts).length == 0) {
-      this.debugOut("== no more posts to click");
-      this.clickShowComments1(-1);
-    } else {
-      if (parseInt(num) == parseInt(more_posts_links.length)) {
-        more_posts_links[0].click();
-        this.timeout_scroll = window.setTimeout(function() { fbExtend.clickMorePosts(num - 1) }, this.randInterval(500, 1500));
-      } else {
-        this.timeout_scroll = window.setTimeout(function() { fbExtend.clickMorePosts(num) }, this.randInterval(500, 1500));
-      }
+        var wid = (Math.ceil(100 * (x / more_posts_max))).toString() + "%";
+        var obj = {
+          "action": "update_progressbar",
+          "current": x,
+          "width": wid
+        }
+
+        shared.send_message("runtime", obj, function() { });
+        if (x == more_posts_max - 1) {
+          setTimeout(function() {
+            console.log("=== POSTS DONE!");
+            fbExtend.clickShowComments1();
+          }, wait_between_steps);
+        }
+      }, x * multiplier, x, this.more_posts_max, more_posts_link);
     }
   },
 
   /*
    * 3. Click all 'View X More Comments'
    */
-  view_comments_max: 0,
-  clickShowComments1: function(num) {
-    shared.send_message("runtime", {"action": "show_message", "str": "Retrieving all comment threads (step 3 of 4)"})
+  more_comments_max: 0,
+  more_comments_links: [],
+  more_comments_timers: [],
+  clickShowComments1: function(num, time_so_far) {
+    shared.send_message("runtime", {"action": "show_message", "str": "Retrieving all comment threads (step 3 of 5). This may take several minutes."})
     shared.send_message("runtime", {"action": "show_status", "num": "3"})
 
-    this.debugOut("== Click show comments");
-    // If page == 'home':
-    comment_selector = "a.UFIPagerLink";
+    var comment_selector = "a.UFIPagerLink";
 
-    view_more_comments_links = jQuery(comment_selector);
-    if (num == -1) {
-      num = view_more_comments_links.length
+    this.more_comments_links = jQuery(comment_selector);
+    this.more_comments_max = this.more_comments_links.length
 
-      obj = {
-        "action": "setup_progressbar",
-        "max": num,
-        "current": 0,
-        "width": "0%"
+    obj = {
+      "action": "setup_progressbar",
+      "max": this.more_comments_max,
+      "current": 0,
+      "width": "0%"
+    }
+    shared.send_message("runtime", obj, function() { });
+
+    multiplier = 750; // 750ms wait between calls to 'get more comments'
+    wait_between_steps = 4000; // Gives the various 'get more comments' calls time to finish before we start copying comments
+    if (this.more_comments_links.length == 0) {
+      fbExtend.processDoc();
+    }
+    for (var x = 0; x < this.more_comments_links.length; x++) {
+      var more_comments_link = this.more_comments_links[x];
+      this.more_comments_timers[x] = setTimeout(function(x, more_comments_max, more_comments_link) {
+
+        more_comments_link.click();
+
+        var wid = (Math.ceil(100 * (x / more_comments_max))).toString() + "%";
+        var obj = {
+          "action": "update_progressbar",
+          "current": x,
+          "width": wid
+        }
+        shared.send_message("runtime", obj, function() { });
+
+        if (x == more_comments_max - 1) {
+          console.log("=== COMMENTS DONE 1!");
+          setTimeout(function() {
+            console.log("=== COMMENTS DONE 2!");
+            shared.send_message("runtime", {"action": "show_message", "str": "Showing all comment threads (step 4 of 5). This should take less than a minute."})
+            shared.send_message("runtime", {"action": "show_status", "num": "4"})
+
+            var commentIcons = jQuery(".UFIBlingBoxTimelineCommentIcon");
+            for (var y = 0; y < commentIcons.length; y++) {
+              commentIcon = commentIcons[y];
+              commentIcon.click();
+
+              var wid = (Math.ceil(100 * (y / commentIcons.length))).toString() + "%";
+              var obj = {
+                "action": "update_progressbar",
+                "current": y,
+                "width": wid
+              }
+              shared.send_message("runtime", obj, function() { });
+            }
+            fbExtend.processDoc();
+          }, wait_between_steps);
+        }
+      }, x * multiplier, x, this.more_comments_max, more_comments_link);
+    }
+
+  },
+
+  cache: {},
+  XHR_TIMEOUT: 45000,
+  num_responses_required: 0,
+  max_num_responses: 0,
+
+  /*
+   * Download all CSS, Images, Javascript and embed into document. Save document.
+   */
+  processDoc: function() {
+    jQuery("html, body").animate({ scrollTop: 0 }, "fast");
+
+    shared.send_message("runtime", {"action": "show_message", "str": "Saving timeline (step 5 of 5)."})
+    shared.send_message("runtime", {"action": "show_status", "num": "5"})
+
+    fbExtend.num_responses_required = 0;
+
+    console.log("== ALL");
+    var all = jQuery('*');
+    for (var x = 0; x < all.length; x++) {
+      var element = jQuery(all[x]);
+      if (element.css("background-image")) {
+        //console.log(element.css("background-image"));
+        if (match = element.css("background-image").match(/^url\((http.+)\)/)) {
+          fbExtend.num_responses_required += 1;
+          var url = match[1];
+          console.log("IMG URL", url);
+          fbExtend.processDomItem(url, true, element, fbExtend.callbackBgImage)
+        }
       }
-      view_comments_max = num;
-      shared.send_message("runtime", obj, function() { });
-    } else {
-      cur = view_comments_max - num;
-      wid = (Math.ceil(100 * (cur / view_comments_max))).toString() + "%";
+    }
+    console.log("== ALL LEN", fbExtend.num_responses_required);
 
-      obj = {
+    // 1. Handle all <script> tags, insert from remote
+    var scripts = jQuery("script");
+    fbExtend.num_responses_required += scripts.length;
+    for (var x = 0; x < scripts.length; x++) {
+      var script = jQuery(scripts[x]);
+      var url = script.attr("src");
+      if (!url) {
+        url = script.attr("href");
+      }
+      console.log("url", url);
+      fbExtend.processDomItem(url, false, script, fbExtend.callbackScript)
+    }
+
+    // 2. Handle all <link> tags, insert from remote
+    var styles = jQuery("link");
+    fbExtend.num_responses_required += styles.length;
+    for (var x = 0; x < styles.length; x++) {
+      var style = jQuery(styles[x]);
+      var url = style.attr("src");
+      if (!url) {
+        url = style.attr("href");
+      }
+      console.log("url", url);
+      fbExtend.processDomItem(url, false, style, fbExtend.callbackStyle)
+    }
+
+    // 2. Handle all <img> tags, insert from remote
+    var images = jQuery("img");
+    fbExtend.num_responses_required += images.length;
+    for (var x = 0; x < images.length; x++) {
+      var img = jQuery(images[x]);
+      var url = img.attr("src");
+
+      fbExtend.processDomItem(url, true, img, fbExtend.callbackImage)
+    }
+
+    fbExtend.max_num_responses = fbExtend.num_responses_required;
+  },
+
+  processDomItem: function(url, is_binary, orig_item, callback) {
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', url, true);
+
+    if (fbExtend.cache[url]) {
+      fbExtend.xhr_complete();
+      return fbExtend.cache[url];
+    }
+
+    if (is_binary) {
+      xhr.responseType = 'arraybuffer';
+      xhr.onload = function(e) {
+        fbExtend.xhr_complete();
+        if (this.status == 200) {
+          var uInt8Array = new Uint8Array(this.response);
+          var i = uInt8Array.length;
+          var binaryString = new Array(i);
+          while (i--)
+          {
+            binaryString[i] = String.fromCharCode(uInt8Array[i]);
+          }
+          var data = binaryString.join('');
+
+          var base64 = window.btoa(data);
+          var response = "data:image/png;base64," + base64;
+          fbExtend.cache[url] = response;
+          callback(url, orig_item, response)
+        }
+      };
+    } else {
+      xhr.onload = function(e) {
+        fbExtend.xhr_complete();
+        console.log("onload", e);
+        if (this.status == 200) {
+          var response = this.responseText;
+          fbExtend.cache[url] = response;
+          callback(url, orig_item, response);
+        }
+      }
+    }
+    xhr.onerror = function() {
+      fbExtend.xhr_complete();
+    };
+    timeout = setTimeout(function() {
+      // Has the XHR request has begun but not finished after 45s? Kill it and mark it complete
+      if (xhr.readyState != 4) {
+        fbExtend.xhr_complete();
+      }
+
+      xhr.abort();
+    }, fbExtend.XHR_TIMEOUT);
+
+    try {
+      xhr.send(null);
+    } catch (e) {
+      fbExtend.xhr_complete();
+    }
+  },
+
+  callbackStyle: function(url, style, response) {
+    console.log("RESPONSE LINK", response.slice(0, 100));
+    var obj = jQuery("<style/>", { text: response });
+    jQuery(style).replaceWith(obj);
+
+  },
+
+  callbackScript: function(url, script, response) {
+    console.log("RESPONSE SCRIPT", response.slice(0, 100));
+    var obj = jQuery("<script/>", { text: response });
+    jQuery(script).replaceWith(obj);
+  },
+
+  callbackImage: function(url, img, response) {
+    img.attr("src", response);
+  },
+
+  callbackBgImage: function(url, img, response) {
+    var val = "url('" + response + "')";
+    console.log(val.slice(0, 200));
+    img.css("background-image", val);
+  },
+
+  /*
+   * Xhr finished, error'd out or timed out. Mark it complete. If all xhrs are complete, send a response to the caller
+   */
+  xhr_complete: function() {
+    console.log("XHR COMPLETE", fbExtend.num_responses_required);
+    fbExtend.num_responses_required -= 1;
+    if (fbExtend.num_responses_required == 0) {  // All items to process have been completed, whether success or error
+
+      jQuery('#pagelet_bluebar').hide();
+      jQuery('.fbTimelineStickyHeader').hide();
+      jQuery("#pagelet_timeline_profile_actions").hide();
+      jQuery('#rightCol').hide();
+      jQuery('#pagelet_dock').hide();
+
+      html = jQuery('html').html();
+      var uid = fbExtend.get_uid();
+
+      console.log("=== SEND HTML");
+      shared.send_message("runtime", {"action": "saveHTML2", "html": html, "uid": uid})
+
+      //sendResponse( { success: true, html: html } );
+    } else {
+      var wid = (Math.ceil(100 * ((fbExtend.max_num_responses - fbExtend.num_responses_required) / fbExtend.max_num_responses))).toString() + "%";
+      var obj = {
         "action": "update_progressbar",
-        "current": cur,
+        "current": (fbExtend.max_num_responses - fbExtend.num_responses_required),
         "width": wid
       }
       shared.send_message("runtime", obj, function() { });
     }
 
-    if (jQuery(view_more_comments_links).length == 0) {
-      this.debugOut("== no more posts to click");
+  },
 
-      // This clicks all the 'show retrieved comments' links, actually displaying the downloaded contents
-      show_comments_selector = 'i.UFIBlingBoxTimelineCommentIcon';
-      show_comments_links = jQuery(show_comments_selector);
-      for (var x = 0; x < show_comments_links.length; x++) {
-        var link = show_comments_links[x];
-        console.log("Showing comment: " + x);
-        link.click();
-      }
-      this.saveHtml();
-    } else {
-      if (parseInt(num) == parseInt(view_more_comments_links.length)) {
-        view_more_comments_links[0].click();
-        this.timeout_scroll = window.setTimeout(function() { fbExtend.clickShowComments1(num - 1) }, this.randInterval(500, 1500));
-      } else {
-        this.timeout_scroll = window.setTimeout(function() { fbExtend.clickShowComments1(num) }, this.randInterval(500, 1500));
-      }
+  selector_timeline: '#fbProfileCover .cover h2 a',
+  selector_home: '#pagelet_welcome_box a.fbxWelcomeBoxName',
+
+  get_uid: function() {
+
+    var cover_name = jQuery(fbExtend.selector_timeline);
+    if (cover_name.length > 0) {
+      // Find username linked to timeline within profile cover area of screen
+      var uid = jQuery(cover_name[0]).attr('href');
+      var arr = uid.split('facebook.com/');
+      uid = arr[arr.length - 1];
+      return { success: true, uid: uid, page: "timeline" };
     }
+
+    cover_name = jQuery(fbExtend.selector_home);
+    if (cover_name.length > 0) {
+      var uid = jQuery(cover_name[0]).attr('href');
+      var arr = uid.split('facebook.com/');
+      uid = arr[arr.length - 1];
+      return { success: true, uid: uid, page: "home" };
+    }
+
+  }
+  // Cross-browser way to get a compatible XMLHttpRequest object, or raise an error trying
+  /*
+  createCORSRequest: function(method, url) {
+    var xhr = new XMLHttpRequest();
+    if ("withCredentials" in xhr) {
+
+      // Check if the XMLHttpRequest object has a "withCredentials" property.
+      // "withCredentials" only exists on XMLHTTPRequest2 objects.
+      xhr.open(method, url, true);
+
+    } else if (typeof XDomainRequest != "undefined") {
+
+      // Otherwise, check if XDomainRequest.
+      // XDomainRequest only exists in IE, and is IE's way of making CORS requests.
+      xhr = new XDomainRequest();
+      xhr.open(method, url);
+
+    } else {
+
+      // Otherwise, CORS is not supported by the browser.
+      xhr = null;
+
+    }
+    return xhr;
   },
 
-  saveHtml: function() {
-    shared.send_message("runtime", {"action": "show_message", "str": "Saving html!"})
-    shared.send_message("runtime", {"action": "show_status", "num": "4"})
+  if (request.action == "process_page_to_html") {
+    var html = '';
 
-    this.debugOut("== Save HTML");
-    shared.send_message("runtime", {"action": "saveHTML"})
-  },
+    processDoc();
 
+    sendResponse( { success: true } );
+    return;
+  }
+
+
+  */
   /*
   consoleLog: function(str) {
     shared.send_message("runtime", {"action": "consoleLog", "str": str})
@@ -239,206 +491,19 @@ chrome.extension.onRequest.addListener(function(request, sender, sendResponse) {
    * get_uid: by examining the current user's cover name, get his/her FB username
    */
   if (request.action == "get_uid") {
-
-    var selector_timeline = '#fbProfileCover .cover h2 a';
-    var selector_home = '#pagelet_welcome_box a.fbxWelcomeBoxName';
-
-    var cover_name = jQuery(selector_timeline);
-    if (cover_name.length > 0) {
-      // Find username linked to timeline within profile cover area of screen
-      var uid = jQuery(cover_name[0]).attr('href');
-      var arr = uid.split('facebook.com/');
-      uid = arr[arr.length - 1];
-      sendResponse( { success: true, uid: uid, page: "timeline" } );
-    }
-
-    cover_name = jQuery(selector_home);
-    if (cover_name.length > 0) {
-      var uid = jQuery(cover_name[0]).attr('href');
-      var arr = uid.split('facebook.com/');
-      uid = arr[arr.length - 1];
-      sendResponse( { success: true, uid: uid, page: "home" } );
-    }
-  }
-
-  var cache = {};
-  var XHR_TIMEOUT = 45000;
-  var num_responses_required = 0;
-
-  function processDoc() {
-
-    // 1. Handle all <script> tags, insert from remote
-    var scripts = jQuery("script");
-    num_responses_required = scripts.length;
-    for (var x = 0; x < scripts.length; x++) {
-      var script = jQuery(scripts[x]);
-      var url = script.attr("src");
-      if (!url) {
-        url = script.attr("href");
-      }
-      console.log("url", url);
-      processDomItem(url, false, script, callbackScript)
-    }
-
-    // 2. Handle all <link> tags, insert from remote
-    var styles = jQuery("link");
-    num_responses_required += styles.length;
-    for (var x = 0; x < styles.length; x++) {
-      var style = jQuery(styles[x]);
-      var url = style.attr("src");
-      if (!url) {
-        url = style.attr("href");
-      }
-      console.log("url", url);
-      processDomItem(url, false, style, callbackStyle)
-    }
-
-    // 2. Handle all <img> tags, insert from remote
-    var images = jQuery("img");
-    num_responses_required += images.length;
-    for (var x = 0; x < images.length; x++) {
-      var img = jQuery(images[x]);
-      var url = img.attr("src");
-
-      processDomItem(url, true, img, callbackImage)
-    }
-  }
-
-  function processDomItem(url, is_binary, orig_item, callback) {
-    var xhr = new XMLHttpRequest();
-    xhr.open('GET', url, true);
-
-    if (cache[url]) {
-      xhr_complete();
-      return cache[url];
-    }
-
-    if (is_binary) {
-      xhr.responseType = 'arraybuffer';
-      xhr.onload = function(e) {
-        xhr_complete();
-        if (this.status == 200) {
-          var uInt8Array = new Uint8Array(this.response);
-          var i = uInt8Array.length;
-          var binaryString = new Array(i);
-          while (i--)
-          {
-            binaryString[i] = String.fromCharCode(uInt8Array[i]);
-          }
-          var data = binaryString.join('');
-
-          var base64 = window.btoa(data);
-          var response = "data:image/png;base64," + base64;
-          cache[url] = response;
-          orig_item.attr("src", response);
-        }
-      };
-    } else {
-      xhr.onload = function(e) {
-        xhr_complete();
-        console.log("onload", e);
-        if (this.status == 200) {
-          var response = this.responseText;
-          cache[url] = response;
-          callback(url, orig_item, response);
-        }
-      }
-    }
-    xhr.onerror = function() {
-      xhr_complete();
-    };
-    timeout = setTimeout(function() {
-      // Has the XHR request has begun but not finished after 45s? Kill it and mark it complete
-      if (xhr.readyState != 4) {
-        xhr_complete();
-      }
-
-      xhr.abort();
-    }, XHR_TIMEOUT);
-
-    try {
-      xhr.send(null);
-    } catch (e) {
-      xhr_complete();
-    }
-  }
-
-  function callbackStyle(url, style, response) {
-    console.log("RESPONSE LINK", response.slice(0, 100));
-    var obj = jQuery("<style/>", { text: response });
-    jQuery(style).replaceWith(obj);
-
-  }
-
-  function callbackScript(url, script, response) {
-    console.log("RESPONSE SCRIPT", response.slice(0, 100));
-    var obj = jQuery("<script/>", { text: response });
-    jQuery(script).replaceWith(obj);
-  }
-
-  function callbackImage(img) {
-
-  }
-
-  /*
-   * Xhr finished, error'd out or timed out. Mark it complete. If all xhrs are complete, send a response to the caller
-   */
-  function xhr_complete() {
-    console.log("XHR COMPLETE", num_responses_required);
-    num_responses_required -= 1;
-    if (num_responses_required == 0) {
-      html = jQuery('html').html();
-      //console.log("HTML", html);
-
-      sendResponse( { success: true, html: html } );
-    }
-  }
-
-  // Cross-browser way to get a compatible XMLHttpRequest object, or raise an error trying
-  function createCORSRequest(method, url) {
-    var xhr = new XMLHttpRequest();
-    if ("withCredentials" in xhr) {
-
-      // Check if the XMLHttpRequest object has a "withCredentials" property.
-      // "withCredentials" only exists on XMLHTTPRequest2 objects.
-      xhr.open(method, url, true);
-
-    } else if (typeof XDomainRequest != "undefined") {
-
-      // Otherwise, check if XDomainRequest.
-      // XDomainRequest only exists in IE, and is IE's way of making CORS requests.
-      xhr = new XDomainRequest();
-      xhr.open(method, url);
-
-    } else {
-
-      // Otherwise, CORS is not supported by the browser.
-      xhr = null;
-
-    }
-    return xhr;
-  }
-
-  if (request.action == "process_page_to_html") {
-    var html = '';
-
-    processDoc();
-
-    //html = jQuery('html').html();
-    //console.log("HTML", html);
-
-    //sendResponse( { success: true, html: html } );
+    sendResponse( fbExtend.get_uid() );
   }
 
   if (request.action == 'go_url') {
     var url = request.url;
     window.location = url;
     sendResponse( { success: true } );
+    return;
   }
 
 });
 
-
+/*
 function replaceURLs(content, host, requestManager, callback) {
   var i, url, result, values = removeComments(content).match(URL_EXP), requestMax = 0, requestIndex = 0;
 
@@ -466,3 +531,4 @@ function replaceURLs(content, host, requestManager, callback) {
       }
     }
 }
+*/

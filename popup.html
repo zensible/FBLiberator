@@ -25,28 +25,14 @@
     <!-- Menu for facebook homepage -->
 
     <div class='show-default'>
-      To use this extension, please:<br>
+      To use this extension, please visit a Facebook timeline:<br>
       <br>
-      <button type="button" class="btn btn-primary btn-url" data-url="https://www.facebook.com" data-newtab="true">Log into Facebook</button>
+      <button type="button" class="btn btn-primary btn-url" data-url="https://www.facebook.com" data-newtab="true">Facebook.com</button>
     </div>
 
-    <div class='show-default'>
-      <br>
-      Waiting for a Facebook page to finish loading...<img src="/img/ajax-loader.gif">
-    </div>
     <!-- Menu for facebook homepage -->
-
-
-    <div class='row-fluid'>
-      <div id='page' class='span3'>
-      </div>
-      <div class='span3' style="text-align: right;">
-        <span id='spinner'><img src="/img/ajax-loader.gif"></span>
-      </div>
-    </div>
-
     <div class='show-home'>
-      <button type="button" class="btn btn-primary btn-url" data-url="https://www.facebook.com">FB Home</button>
+      <button type="button" class="btn btn-link btn-url" data-url="https://www.facebook.com">FB Home</button>
       <button type="button" class="btn btn-link btn-url" data-url="https://www.facebook.com/[id]/timeline">Timeline</button>
       <button type="button" class="btn btn-link btn-url" data-url="https://www.facebook.com/[id]/about">About</button>
       <button type="button" class="btn btn-link btn-url" data-url="https://www.facebook.com/[id]/photos">Photos</button>
@@ -55,11 +41,18 @@
     </div>
 
     <div class='show-timeline'>
-      <button type="button" class="btn btn-primary btn-url" data-url="https://www.facebook.com">FB Home</button>
+      <button type="button" class="btn btn-link btn-url" data-url="https://www.facebook.com">FB Home</button>
       <button type="button" class="btn btn-link btn-url" data-url="https://www.facebook.com/[id]/timeline">Timeline</button>
       <button type="button" class="btn btn-link btn-url" data-url="https://www.facebook.com/[id]/about">About</button>
       <button type="button" class="btn btn-link btn-url" data-url="https://www.facebook.com/[id]/photos">Photos</button>
       <button type="button" class="btn btn-link btn-url" data-url="https://www.facebook.com/[id]/friends">Friends</button>
+    </div>
+
+    <div class='row-fluid'>
+      <h4 id='page' class='span3'></h4>
+      <div class='span3' style="text-align: right;">
+        <span id='spinner'><img src="/img/ajax-loader.gif"></span>
+      </div>
     </div>
 
     <div id='message' class='span12 text-warning' >
@@ -75,36 +68,20 @@
     <div class='show-home'>
       <input id="save_home" type="button" value="Load More"> 
       <div id='load_timeline_status'>
-        <p id='status1' class='status'>
-          1. Scrolling through history
-        </p>
-        <p id='status2' class='status'>
-          2. Retrieve all posts
-        </p>
-        <p id='status3' class='status'>
-          3. Retrieve all comments
-        </p>
-        <p id='status4' class='status'>
-          4. Done! Now click File -> Save As (Webpage, Complete) to save a complete backup of this timeline.
-        </p>
       </div>
     </div>
 
     <div class='show-timeline'>
-      <button id="save_timeline" type="button" class="btn btn-primary">Full Timeline Backup</button>
-      <div id='load_timeline_status'>
-        <p id='status1' class='status'>
-          1. Scrolling through history
-        </p>
-        <p id='status2' class='status'>
-          2. Retrieve all posts
-        </p>
-        <p id='status3' class='status'>
-          3. Retrieve all comments
-        </p>
-        <p id='status4' class='status'>
-          4. Done! Now click File -> Save As (Webpage, Complete) to save a complete backup of this timeline.
-        </p>
+      <button id="save_timeline" type="button" class="btn btn-success">Backup This Page</button>
+      <div style='margin-top: 8px;'>
+        Delete oldest posts:
+        <button id="delete_20" type="button" class="btn btn-danger delete-button" disabled="disabled">Delete 20</button>
+        <button id="delete_50" type="button" class="btn btn-danger delete-button" disabled="disabled">Delete 50</button>
+        <button id="delete_100" type="button" class="btn btn-danger delete-button" disabled="disabled">Delete 100</button>
+        <br>
+        <small>
+          Posts are deleted oldest-to-newest.
+        </small>
       </div>
     </div>
 

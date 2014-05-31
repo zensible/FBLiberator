@@ -15,9 +15,10 @@
  */
 
 chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
-  if (status == "complete") {
+  //console.log(changeInfo);
+  //if (status == "complete") {
     fb_liberator.init_popup();
-  }
+  //}
 });
 
 $( document ).ready(function() {
@@ -75,8 +76,8 @@ fb_liberator.get_uid_page = function() {
   });
 }
 
+// Sets page's body's class to either 'home' or 'timeline'
 fb_liberator.select_page = function(page) {
-  // Sets page's body's class to either 'home' or 'timeline'
   $('body').attr("class", page);
 
   var pageUC = page.replace(/^(.)|\s(.)/g, function($1){ return $1.toUpperCase( ); });
@@ -154,11 +155,11 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     var num = request.num.toString();
     $('#status' + num).show();
 
-    if (num == "4") {
+    if (num == "5") {
       $('#spinner').hide();
       chrome.browserAction.setBadgeText({ "text": "" })
     } else {
-      chrome.browserAction.setBadgeText({ "text": num + "of4" })
+      chrome.browserAction.setBadgeText({ "text": num + "of5" })
     }
 
     sendResponse( { success: true } );
